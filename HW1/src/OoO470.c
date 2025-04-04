@@ -17,7 +17,7 @@ void commit_stage(){
       exception = true;
       return;
     }
-    push_free_list(is.oldDest);
+    push_free_list(is.old_dest);
     commit_active_list();
     is = active_list.list[active_list.head];
     nb_committed += 1;
@@ -39,28 +39,28 @@ void execute2_stage(){
   while (pq != NULL){
     instruction_state *is = pq->is;
 
-    if(!strncmp(is->opCode, "add", 4)){
-      register_file[is->destReg] = is->opAValue + is->opBValue;
-    }else if(!strncmp(is->opCode, "addi", 5)){
-      register_file[is->destReg] = is->opAValue + (int64_t)(is->opBValue);
-    }else if(!strncmp(is->opCode, "sub", 4)){
-      register_file[is->destReg] = is->opAValue - is->opBValue;
-    }else if(!strncmp(is->opCode, "mulu", 5)){
-      register_file[is->destReg] = is->opAValue * is->opBValue;
-    }else if(!strncmp(is->opCode, "divu", 5)){
-      if(is->opBValue == 0)
+    if(!strncmp(is->opcode, "add", 4)){
+      register_file[is->dest_reg] = is->op_a_value + is->op_b_value;
+    }else if(!strncmp(is->opcode, "addi", 5)){
+      register_file[is->dest_reg] = is->op_a_value + (int64_t)(is->op_b_value);
+    }else if(!strncmp(is->opcode, "sub", 4)){
+      register_file[is->dest_reg] = is->op_a_value - is->op_b_value;
+    }else if(!strncmp(is->opcode, "mulu", 5)){
+      register_file[is->dest_reg] = is->op_a_value * is->op_b_value;
+    }else if(!strncmp(is->opcode, "divu", 5)){
+      if(is->op_b_value == 0)
         is->exception = true;
       else
-        register_file[is->destReg] = is->opAValue / is->opBValue;
-    }else if(!strncmp(is->opCode, "remu", 5)){
-      if(is->opBValue == 0)
+        register_file[is->dest_reg] = is->op_a_value / is->op_b_value;
+    }else if(!strncmp(is->opcode, "remu", 5)){
+      if(is->op_b_value == 0)
         is->exception = true;
       else
-        register_file[is->destReg] = is->opAValue % is->opBValue;
+        register_file[is->dest_reg] = is->op_a_value % is->op_b_value;
     }
 
     if(!is->exception)
-      busy_bit_table[is->destReg] = false;
+      busy_bit_table[is->dest_reg] = false;
     is->done = 1;
 
     pipeline_queue *pq_next = pq->next;
@@ -105,17 +105,17 @@ void issue_stage(){
   while (pq != NULL){
     instruction_state *is = pq->is;
 
-    if(!is->opAIsReady && !busy_bit_table[is->opARegTag]){
-      is->opAIsReady = true;
-      is->opAValue = register_file[is->opARegTag];
+    if(!is->op_a_is_ready && !busy_bit_table[is->op_a_reg_tag]){
+      is->op_a_is_ready = true;
+      is->op_a_value = register_file[is->op_a_reg_tag];
     }
-    if(!is->opBIsReady && !busy_bit_table[is->opBRegTag]){
-      is->opBIsReady = true;
-      is->opBValue = register_file[is->opBRegTag];
+    if(!is->op_b_is_ready && !busy_bit_table[is->op_b_reg_tag]){
+      is->op_b_is_ready = true;
+      is->op_b_value = register_file[is->op_b_reg_tag];
     }
 
     pipeline_queue *pq_next = pq->next;
-    if(nb_issues < 4 && is->opAIsReady && is->opBIsReady){
+    if(nb_issues < 4 && is->op_a_is_ready && is->op_b_is_ready){
       insert_is_in_queue(&ALU1_reg, pq->is);
       delete_pq_from_queue(&IQ_reg, pq);
       nb_issues += 1;
@@ -148,38 +148,38 @@ int rename_and_dispatch_stage(){
       instruction_state *is = NULL;
       dispatch_active_list(&is);
 
-      int op_a = register_map_table[pi->opB];
+      int op_a = register_map_table[pi->op_A_reg];
       if(!busy_bit_table[op_a]){
-        is->opAIsReady = true;
-        is->opAValue = register_file[op_a];
+        is->op_a_is_ready = true;
+        is->op_a_value = register_file[op_a];
       }else{
-        is->opARegTag = op_a;
+        is->op_a_reg_tag = op_a;
       }
-      if(!strncmp(pi->opCode, "addi", 5)){
-        is->opBIsReady = true;
-        is->opBValue = pi->opC;
+      if(!strncmp(pi->opcode, "addi", 5)){
+        is->op_b_is_ready = true;
+        is->op_b_value = pi->op_B_reg;
       }else {
-        int op_b = register_map_table[pi->opC];
+        int op_b = register_map_table[pi->op_B_reg];
         if(!busy_bit_table[op_b]){
-          is->opBIsReady = true;
-          is->opBValue = register_file[op_b];
+          is->op_b_is_ready = true;
+          is->op_b_value = register_file[op_b];
         }else{
-          is->opBRegTag = op_b;
+          is->op_b_reg_tag = op_b;
         }
       }
 
-      int log_dest = pi->opA;
+      int log_dest = pi->dest_reg;
       int dest_reg = pop_free_list();
       busy_bit_table[dest_reg] = true;
       int old_dest  = register_map_table[log_dest];
       register_map_table[log_dest] = dest_reg;
       
-      is->destReg = dest_reg;
-      is->logDest = log_dest;
-      is->oldDest = old_dest;
+      is->dest_reg = dest_reg;
+      is->dest_reg = log_dest;
+      is->old_dest = old_dest;
       
       is->pc = pi->pc;
-      strncpy(is->opCode, pi->opCode, 5);
+      strncpy(is->opcode, pi->opcode, 5);
 
       insert_is_in_queue(&IQ_reg, is);
     }
@@ -204,9 +204,9 @@ void exception_recovery_mode(){
     instruction_state *is = NULL;
     exception_pop_active_list(&is);
 
-    push_free_list(is->destReg);
-    busy_bit_table[is->destReg] = false;
-    register_map_table[is->logDest] = is->oldDest;
+    push_free_list(is->dest_reg);
+    busy_bit_table[is->dest_reg] = false;
+    register_map_table[is->dest_reg] = is->old_dest;
 
     nb_recovered += 1;
   }

@@ -10,91 +10,90 @@
 int allocated_instructions = 0;
 
 long extract_operand(char *operand) {
-    if (operand[0] == 'x') {
-        return strtol(operand + 1, NULL, 10); 
-    }
-    return strtol(operand, NULL, 10);
+  if (operand[0] == 'x') {
+    return strtol(operand + 1, NULL, 10); 
+  }
+  return strtol(operand, NULL, 10);
 }
 
-// Function to parse a single instruction
 void parse_instruction(const char *line, program *p) {
-    if (p->instruction_count >= allocated_instructions) {
-        allocated_instructions = (allocated_instructions == 0) ? 10 : allocated_instructions * 2;
-        p->instructions = realloc(p->instructions, allocated_instructions * sizeof(program_instruction));
-        if (!p->instructions) {
-            perror("Memory allocation failed");
-            exit(EXIT_FAILURE);
-        }
+  if (p->instruction_count >= allocated_instructions) {
+    allocated_instructions = (allocated_instructions == 0) ? 10 : allocated_instructions * 2;
+    p->instructions = realloc(p->instructions, allocated_instructions * sizeof(program_instruction));
+    if (!p->instructions) {
+      perror("Memory allocation failed");
+      exit(EXIT_FAILURE);
     }
+  }
 
-    char temp[50];
-    strncpy(temp, line, sizeof(temp) - 1);
-    temp[sizeof(temp) - 1] = '\0';
+  char temp[50];
+  strncpy(temp, line, sizeof(temp) - 1);
+  temp[sizeof(temp) - 1] = '\0';
 
-    char *token = strtok(temp, " ,");
-    if (!token) return;
-    strcpy(p->instructions[p->instruction_count].opCode, token);
+  char *token = strtok(temp, " ,");
+  if (!token) return;
+  strcpy(p->instructions[p->instruction_count].opcode, token);
     
-    token = strtok(NULL, " ,");
-    p->instructions[p->instruction_count].opA = token ? extract_operand(token) : 0;
+  token = strtok(NULL, " ,");
+  p->instructions[p->instruction_count].dest_reg = token ? extract_operand(token) : 0;
     
-    token = strtok(NULL, " ,");
-    p->instructions[p->instruction_count].opB = token ? extract_operand(token) : 0;
+  token = strtok(NULL, " ,");
+  p->instructions[p->instruction_count].op_A_reg = token ? extract_operand(token) : 0;
     
-    token = strtok(NULL, " ,");
-    p->instructions[p->instruction_count].opC = token ? extract_operand(token) : 0;
+  token = strtok(NULL, " ,");
+  p->instructions[p->instruction_count].op_B_reg = token ? extract_operand(token) : 0;
     
-    p->instruction_count += 1;
+  p->instruction_count += 1;
 }
 
 char *read_file(const char *filename) {
-    FILE *file = fopen(filename, "r");
-    if (!file) {
-        return NULL;
-    }
+  FILE *file = fopen(filename, "r");
+  if (!file) {
+    return NULL;
+  }
     
-    fseek(file, 0, SEEK_END);
-    long length = ftell(file);
-    rewind(file);
+  fseek(file, 0, SEEK_END);
+  long length = ftell(file);
+  rewind(file);
     
-    char *buffer = malloc(length + 1);
-    if (!buffer) {
-        fclose(file);
-        return NULL;
-    }
-    
-    fread(buffer, 1, length, file);
-    buffer[length] = '\0';
+  char *buffer = malloc(length + 1);
+  if (!buffer) {
     fclose(file);
-    return buffer;
+    return NULL;
+  }
+    
+  fread(buffer, 1, length, file);
+  buffer[length] = '\0';
+  fclose(file);
+  return buffer;
 }
 
 void parse_json(char *json_data, program *p) {
-    char *ptr = json_data;
-    while ((ptr = strchr(ptr, '"')) != NULL) { // Find the next "
-        ptr++; // Move past the "
-        char *end = strchr(ptr, '"');
-        if (!end) break; // If no closing quote, stop
-        *end = '\0'; // Null-terminate the instruction
-        parse_instruction(ptr, p);
-        ptr = end + 1; // Move past the closing "
-    }
+  char *ptr = json_data;
+  while ((ptr = strchr(ptr, '"')) != NULL) { // Find the next "
+    ptr++; // Move past the "
+    char *end = strchr(ptr, '"');
+    if (!end) break; // If no closing quote, stop
+    *end = '\0'; // Null-terminate the instruction
+    parse_instruction(ptr, p);
+    ptr = end + 1; // Move past the closing "
+  }
 }
 
 void add_pc_values(program *p){
-    for (int i = 0; i < p->instruction_count; i++) {
-        p->instructions[i].pc = i;
-    }
+  for (int i = 0; i < p->instruction_count; i++) {
+    p->instructions[i].pc = i;
+  }
 }
 
 void convert_json_into_program(const char *json_file, program *p){
-    char *json_data = read_file(json_file);
-    if (!json_data) return;
+  char *json_data = read_file(json_file);
+  if (!json_data) return;
     
-    parse_json(json_data, p);
-    free(json_data);
+  parse_json(json_data, p);
+  free(json_data);
 
-    add_pc_values(p);
+  add_pc_values(p);
 }
 
 cJSON *log_array = NULL;
@@ -159,8 +158,8 @@ void append_state_to_logs() {
       cJSON *entry = cJSON_CreateObject();
       cJSON_AddBoolToObject(entry, "Done", is->done);
       cJSON_AddBoolToObject(entry, "Exception", is->exception);
-      cJSON_AddNumberToObject(entry, "LogicalDestination", is->logDest);
-      cJSON_AddNumberToObject(entry, "OldDestination", is->oldDest);
+      cJSON_AddNumberToObject(entry, "LogicalDestination", is->log_dest);
+      cJSON_AddNumberToObject(entry, "OldDestination", is->old_dest);
       cJSON_AddNumberToObject(entry, "PC", is->pc);
       cJSON_AddItemToArray(al_array, entry);
           
@@ -176,18 +175,18 @@ void append_state_to_logs() {
     instruction_state *is = cur->is;
     if (is) {
       cJSON *entry = cJSON_CreateObject();
-      cJSON_AddNumberToObject(entry, "DestRegister", is->destReg);
-      cJSON_AddBoolToObject(entry, "OpAIsReady", is->opAIsReady);
-      cJSON_AddNumberToObject(entry, "OpARegTag", is->opARegTag);
+      cJSON_AddNumberToObject(entry, "DestRegister", is->dest_reg);
+      cJSON_AddBoolToObject(entry, "OpAIsReady", is->op_a_is_ready);
+      cJSON_AddNumberToObject(entry, "OpARegTag", is->op_a_reg_tag);
       //This fixes the rounding issues by directly copying the number in this buffer
       char buffer[64];
-      snprintf(buffer, sizeof(buffer), "%llu", (unsigned long long)is->opAValue);
+      snprintf(buffer, sizeof(buffer), "%llu", (unsigned long long)is->op_a_value);
       cJSON_AddItemToObject(entry, "OpAValue", cJSON_CreateRaw(buffer));
-      cJSON_AddBoolToObject(entry, "OpBIsReady", is->opBIsReady);
-      cJSON_AddNumberToObject(entry, "OpBRegTag", is->opBRegTag);
-      snprintf(buffer, sizeof(buffer), "%llu", (unsigned long long)is->opBValue);
+      cJSON_AddBoolToObject(entry, "OpBIsReady", is->op_b_is_ready);
+      cJSON_AddNumberToObject(entry, "OpBRegTag", is->op_b_reg_tag);
+      snprintf(buffer, sizeof(buffer), "%llu", (unsigned long long)is->op_b_value);
       cJSON_AddItemToObject(entry, "OpBValue", cJSON_CreateRaw(buffer));
-      cJSON_AddStringToObject(entry, "OpCode", strncmp(is->opCode, "addi", 5) ? is->opCode : "add"); // BECAUSE ADD NOT ADDI
+      cJSON_AddStringToObject(entry, "OpCode", strncmp(is->opcode, "addi", 5) ? is->opcode : "add"); // BECAUSE ADD NOT ADDI
       cJSON_AddNumberToObject(entry, "PC", is->pc);
       cJSON_AddItemToArray(iq_array, entry);
     }
@@ -204,8 +203,8 @@ void convert_logs_to_json(const char *json_file) {
   char *json_str = cJSON_Print(log_array);
   FILE *f = fopen(json_file, "w");
   if (f) {
-      fputs(json_str, f);
-      fclose(f);
+    fputs(json_str, f);
+    fclose(f);
   }
   free(json_str);
   cJSON_Delete(log_array);

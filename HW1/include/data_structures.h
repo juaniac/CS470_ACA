@@ -1,8 +1,8 @@
 typedef struct {
-  char opCode[5];
-  long opA;
-  long opB;
-  long opC;
+  char opcode[5];
+  long dest_reg;
+  long op_A_reg;
+  long op_B_reg;
   long pc;
 } program_instruction;
 
@@ -36,17 +36,17 @@ void push_free_list(int free_reg);
 typedef struct{
   bool done;
   bool exception;
-  int logDest;
-  int oldDest;
+  int log_dest;
+  int old_dest;
   int pc;
-  int destReg;
-  bool opAIsReady;
-  int opARegTag;
-  uint64_t opAValue;
-  bool opBIsReady;
-  int opBRegTag;
-  uint64_t opBValue;
-  char opCode[5];
+  int dest_reg;
+  bool op_a_is_ready;
+  int op_a_reg_tag;
+  uint64_t op_a_value;
+  bool op_b_is_ready;
+  int op_b_reg_tag;
+  uint64_t op_b_value;
+  char opcode[5];
 }instruction_state;
 
 typedef struct{

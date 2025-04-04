@@ -62,17 +62,17 @@ void dispatch_active_list(instruction_state **is){
     return;
   }
     
-  active_list.list[active_list.tail].destReg = 0;
+  active_list.list[active_list.tail].dest_reg = 0;
   active_list.list[active_list.tail].done = false;
   active_list.list[active_list.tail].exception = 0;
-  active_list.list[active_list.tail].logDest = 0;
-  active_list.list[active_list.tail].oldDest = 0;
-  active_list.list[active_list.tail].opAIsReady = false;
-  active_list.list[active_list.tail].opARegTag = 0;
-  active_list.list[active_list.tail].opAValue = 0;
-  active_list.list[active_list.tail].opBIsReady = false;
-  active_list.list[active_list.tail].opBRegTag = 0;
-  active_list.list[active_list.tail].opBValue = 0;
+  active_list.list[active_list.tail].log_dest = 0;
+  active_list.list[active_list.tail].old_dest= 0;
+  active_list.list[active_list.tail].op_a_is_ready = false;
+  active_list.list[active_list.tail].op_a_reg_tag = 0;
+  active_list.list[active_list.tail].op_a_value = 0;
+  active_list.list[active_list.tail].op_b_is_ready = false;
+  active_list.list[active_list.tail].op_b_reg_tag = 0;
+  active_list.list[active_list.tail].op_b_value = 0;
   active_list.list[active_list.tail].pc = 0;
 
   (*is) = &(active_list.list[active_list.tail]); 
