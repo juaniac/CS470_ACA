@@ -4,10 +4,11 @@
 #include <ctype.h>
 
 typedef struct {
-    char operation[5];
+    char opCode[5];
     long opA;
     long opB;
     long opC;
+    long pc;
 } program_instruction;
 
 typedef struct {
@@ -41,7 +42,7 @@ void parse_instruction(const char *line, program *p) {
 
     char *token = strtok(temp, " ,");
     if (!token) return;
-    strcpy(p->instructions[p->instruction_count].operation, token);
+    strcpy(p->instructions[p->instruction_count].opCode, token);
     
     token = strtok(NULL, " ,");
     p->instructions[p->instruction_count].opA = token ? extract_operand(token) : 0;
@@ -91,7 +92,13 @@ void parse_json(char *json_data, program *p) {
 
 void print_program(program *p) {
     for (int i = 0; i < p->instruction_count; i++) {
-        printf("%s %ld, %ld, %ld\n", p->instructions[i].operation, p->instructions[i].opA, p->instructions[i].opB, p->instructions[i].opC);
+        printf("PC:%ld  %s %ld, %ld, %ld\n",p->instructions[i].pc, p->instructions[i].opCode, p->instructions[i].opA, p->instructions[i].opB, p->instructions[i].opC);
+    }
+}
+
+void add_pc_values(program *p){
+    for (int i = 0; i < p->instruction_count; i++) {
+        p->instructions[i].pc = i;
     }
 }
 
@@ -101,6 +108,8 @@ int convert_json_into_program(const char *json_file, program *p){
     
     parse_json(json_data, p);
     free(json_data);
+
+    add_pc_values(p);
     
     print_program(p);
     return 0;
