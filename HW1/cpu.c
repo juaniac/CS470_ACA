@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include "parser.c"
 #include "cJSON.h"
 
-long register_file[64];
+uint64_t register_file[64];
 bool busy_bit_table[64];
 int  register_map_table[32];
 
@@ -62,10 +64,10 @@ typedef struct{
   int destReg;
   bool opAIsReady;
   int opARegTag;
-  long opAValue;
+  uint64_t opAValue;
   bool opBIsReady;
   int opBRegTag;
-  long opBValue;
+  uint64_t opBValue;
   char opCode[5];
 }instruction_state;
 
@@ -231,7 +233,7 @@ void execute2_stage(){
     if(!strncmp(is->opCode, "add", 4)){
       register_file[is->destReg] = is->opAValue + is->opBValue;
     }else if(!strncmp(is->opCode, "addi", 5)){
-      register_file[is->destReg] = is->opAValue + is->opBValue;
+      register_file[is->destReg] = is->opAValue + (int64_t)(is->opBValue);
     }else if(!strncmp(is->opCode, "sub", 4)){
       register_file[is->destReg] = is->opAValue - is->opBValue;
     }else if(!strncmp(is->opCode, "mulu", 5)){
@@ -461,7 +463,16 @@ void append_state_to_log() {
 
   cJSON *prf_array = cJSON_CreateArray();
   for (int i = 0; i < 64; i++) {
-    cJSON_AddItemToArray(prf_array, cJSON_CreateNumber(register_file[i]));
+    //This fixes the rounding issues by directly copying the number in this buffer
+    char buffer[64];
+    snprintf(buffer, sizeof(buffer), "%llu", (unsigned long long)register_file[i]);
+    cJSON_AddItemToArray(prf_array, cJSON_CreateRaw(buffer)); 
+  }
+  cJSON_AddItemToObject(root, "PhysicalRegisterFile", prf_array);
+
+  cJSON *prf_array = cJSON_CreateArray();
+  for (int i = 0; i < 64; i++) {
+    cJSON_AddItemToArray(prf_array, cJSON_CreateNumber(register_file[i])); 
   }
   cJSON_AddItemToObject(root, "PhysicalRegisterFile", prf_array);
   
@@ -527,10 +538,14 @@ void append_state_to_log() {
       cJSON_AddNumberToObject(entry, "DestRegister", is->destReg);
       cJSON_AddBoolToObject(entry, "OpAIsReady", is->opAIsReady);
       cJSON_AddNumberToObject(entry, "OpARegTag", is->opARegTag);
-      cJSON_AddNumberToObject(entry, "OpAValue", is->opAValue);
+      //This fixes the rounding issues by directly copying the number in this buffer
+      char buffer[64];
+      snprintf(buffer, sizeof(buffer), "%llu", (unsigned long long)is->opAValue);
+      cJSON_AddItemToObject(entry, "OpAValue", cJSON_CreateRaw(buffer));
       cJSON_AddBoolToObject(entry, "OpBIsReady", is->opBIsReady);
       cJSON_AddNumberToObject(entry, "OpBRegTag", is->opBRegTag);
-      cJSON_AddNumberToObject(entry, "OpBValue", is->opBValue);
+      snprintf(buffer, sizeof(buffer), "%llu", (unsigned long long)is->opBValue);
+      cJSON_AddItemToObject(entry, "OpBValue", cJSON_CreateRaw(buffer));
       cJSON_AddStringToObject(entry, "OpCode", strncmp(is->opCode, "addi", 5) ? is->opCode : "add"); // BECAUSE ADD NOT ADDI
       cJSON_AddNumberToObject(entry, "PC", is->pc);
       cJSON_AddItemToArray(iq_array, entry);
@@ -556,9 +571,17 @@ void finalize_logger(const char *filename) {
   log_array = NULL;
 }
 
-void main(){
+void main(int argc, char *argv[]) {
+  if (argc != 3) {
+    fprintf(stderr, "Usage: %s <input_file> <output_file>\n", argv[0]);
+    return;
+  }
+
+  const char *input_json = argv[1];
+  const char *output_json = argv[2];
+
   program *p = calloc(1, sizeof(program));
-  convert_json_into_program("input.json", p);
+  convert_json_into_program(input_json, p);
 
   reset();
   init_logger();
@@ -573,5 +596,8 @@ void main(){
     exception = false;
     append_state_to_log();
   }
-  finalize_logger("output.json");
+  finalize_logger(output_json);
+  for(int i = 0; i < 64; i++){
+    printf("r%d=%lu\n", i, register_file[i]);
+  }
 }

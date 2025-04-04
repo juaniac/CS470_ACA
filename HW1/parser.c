@@ -111,6 +111,6 @@ int convert_json_into_program(const char *json_file, program *p){
 
     add_pc_values(p);
     
-    print_program(p);
+    //print_program(p);
     return 0;
 }
