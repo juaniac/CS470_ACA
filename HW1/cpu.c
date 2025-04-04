@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -12,6 +11,7 @@ int  register_map_table[32];
 long pc;
 long epc;
 bool exception;
+#define EXCEPTION_ADDRESS 0x10000
 
 typedef struct {
   int list[32];
@@ -135,6 +135,20 @@ int empty_entries_active_list(){
   return nb_empty_entries;
 }
 
+void exception_pop_active_list(instruction_state **is){
+  if(active_list.empty){
+    printf("EMPTY ACTIVE LIST");
+    return;
+  }
+    
+  active_list.tail = (active_list.tail - 1) % 32;
+  (*is) = &(active_list.list[active_list.tail]);
+
+  if(active_list.tail == active_list.head)
+    active_list.empty = true;
+  active_list.full = false;
+}
+
 typedef struct pipeline_queue{
   struct pipeline_queue *prev;
   instruction_state *is;
@@ -185,10 +199,13 @@ void commit_stage(){
 
   int nb_committed = 0;
   instruction_state is = active_list.list[active_list.head];
-  while(nb_committed < 4 && is.done == 1){
-
-    //TODO DEAL WITH EXCEPTIONS!!
-
+  while(!active_list.empty && nb_committed < 4 && is.done){
+    if(is.exception){
+      epc = is.pc;
+      pc = EXCEPTION_ADDRESS;
+      exception = true;
+      return;
+    }
     push_free_list(is.oldDest);
     commit_active_list();
     is = active_list.list[active_list.head];
@@ -196,8 +213,18 @@ void commit_stage(){
   }
 }
 
-void execute_stage(){
+void execute2_stage(){
   pipeline_queue *pq = ALU2_reg;
+
+  if(exception){
+    while (pq != NULL){
+      pipeline_queue *pq_next = pq->next;
+      delete_pq_from_queue(&ALU2_reg, pq);
+      pq = pq_next;
+    }
+    return;
+  }
+
   while (pq != NULL){
     instruction_state *is = pq->is;
 
@@ -221,15 +248,49 @@ void execute_stage(){
         register_file[is->destReg] = is->opAValue % is->opBValue;
     }
 
-    busy_bit_table[is->destReg] = false;
+    if(!is->exception)
+      busy_bit_table[is->destReg] = false;
     is->done = 1;
 
-    pq = pq->next;
+    pipeline_queue *pq_next = pq->next;
+    delete_pq_from_queue(&ALU2_reg, pq);
+    pq = pq_next;
+  }
+}
+
+void execute1_stage(){
+  pipeline_queue *pq = ALU1_reg;
+
+  if(exception){
+    while (pq != NULL){
+      pipeline_queue *pq_next = pq->next;
+      delete_pq_from_queue(&ALU1_reg, pq);
+      pq = pq_next;
+    }
+    return;
+  }
+
+  while (pq != NULL){
+    pipeline_queue *pq_next = pq->next;
+    insert_is_in_queue(&ALU2_reg, pq->is);
+    delete_pq_from_queue(&ALU1_reg, pq);
+    pq = pq_next;
   }
 }
 
 void issue_stage(){
   pipeline_queue *pq = IQ_reg;
+
+  if(exception){
+    while (pq != NULL){
+      pipeline_queue *pq_next = pq->next;
+      delete_pq_from_queue(&IQ_reg, pq);
+      pq = pq_next;
+    }
+    return;
+  }
+
+  int nb_issues = 0;
   while (pq != NULL){
     instruction_state *is = pq->is;
 
@@ -242,11 +303,25 @@ void issue_stage(){
       is->opBValue = register_file[is->opBRegTag];
     }
 
-    pq = pq->next;
+    pipeline_queue *pq_next = pq->next;
+    if(nb_issues < 4 && is->opAIsReady && is->opBIsReady){
+      insert_is_in_queue(&ALU1_reg, pq->is);
+      delete_pq_from_queue(&IQ_reg, pq);
+      nb_issues += 1;
+    }
+
+    pq = pq_next;
   }
 }
 
 int rename_and_dispatch_stage(){
+  if(exception){
+    for(int i = 0; i < 4; i+=1){
+      DIR_reg[i] = NULL;
+    }
+    return 1;
+  }
+
   int nb_to_rename = 0;
   for(int i = 0; i < 4; i+=1){
     if(DIR_reg[i] != NULL)
@@ -312,58 +387,32 @@ void fetch_and_decode_stage(program *p){
   } 
 }
 
-void execute_latch(){
-  pipeline_queue *pq = ALU2_reg;
-  while (pq != NULL){
-    pipeline_queue *pq_next = pq->next;
-    delete_pq_from_queue(&ALU2_reg, pq);
-    pq = pq_next;
+void exception_recovery_mode(){
+  int nb_recovered = 0;
+  while(!active_list.empty && nb_recovered < 4){
+    instruction_state *is = NULL;
+    exception_pop_active_list(&is);
+
+    push_free_list(is->destReg);
+    busy_bit_table[is->destReg] = false;
+    register_map_table[is->logDest] = is->oldDest;
+
+    nb_recovered += 1;
   }
-
-  pq = ALU1_reg;
-  while (pq != NULL){
-    pipeline_queue *pq_next = pq->next;
-    insert_is_in_queue(&ALU2_reg, pq->is);
-    delete_pq_from_queue(&ALU1_reg, pq);
-    pq = pq_next;
-  }
-}
-
-void issue_latch(){
-  pipeline_queue *pq = IQ_reg;
-  int nb_issues = 0;
-  while (pq != NULL && nb_issues < 4){
-    pipeline_queue *pq_next = pq->next;
-    instruction_state *is = pq->is;
-
-    if(is->opAIsReady && is->opBIsReady){
-      insert_is_in_queue(&ALU1_reg, pq->is);
-      delete_pq_from_queue(&IQ_reg, pq);
-      nb_issues += 1;
-    }
-
-    pq = pq_next;
-  }
-  printf("issues: %d \n", nb_issues);
 }
 
 void propagate(program *p){
-  printf("COMMIT\n");
-  commit_stage();
-  printf("EXECUTE\n");
-  execute_stage();
-  printf("EXECUTE LATCH\n");
-  execute_latch();
-  printf("ISSUE\n");
-  issue_stage();
-  printf("ISSUE LATCH\n");
-  issue_latch();
-  printf("RD\n");
-  int backpressure = rename_and_dispatch_stage();
-  if(!backpressure){
-    printf("FD\n");
-    fetch_and_decode_stage(p);
+  if(exception){
+    exception_recovery_mode();
+    return;
   }
+  commit_stage();
+  execute2_stage();
+  execute1_stage();
+  issue_stage();
+  int backpressure = rename_and_dispatch_stage();
+  if(!backpressure)
+    fetch_and_decode_stage(p);
 }
 
 void reset(){
@@ -482,7 +531,7 @@ void append_state_to_log() {
       cJSON_AddBoolToObject(entry, "OpBIsReady", is->opBIsReady);
       cJSON_AddNumberToObject(entry, "OpBRegTag", is->opBRegTag);
       cJSON_AddNumberToObject(entry, "OpBValue", is->opBValue);
-      cJSON_AddStringToObject(entry, "OpCode", is->opCode);
+      cJSON_AddStringToObject(entry, "OpCode", strncmp(is->opCode, "addi", 5) ? is->opCode : "add"); // BECAUSE ADD NOT ADDI
       cJSON_AddNumberToObject(entry, "PC", is->pc);
       cJSON_AddItemToArray(iq_array, entry);
     }
@@ -516,12 +565,13 @@ void main(){
   append_state_to_log();
   
   int cycle = 0;
-  while(!(pc == p->instruction_count &&  DIR_reg[0] == NULL && active_list.empty)){
-    printf("cycle=%d \n", cycle);
+  while(!((pc == p->instruction_count || pc == EXCEPTION_ADDRESS) &&  DIR_reg[0] == NULL && active_list.empty)){
     propagate(p);
     append_state_to_log();
-    cycle += 1;
-  } 
+  }
+  if(exception){
+    exception = false;
+    append_state_to_log();
+  }
   finalize_logger("output.json");
-  printf("DONE \n");
 }
