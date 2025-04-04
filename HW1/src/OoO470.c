@@ -175,7 +175,7 @@ int rename_and_dispatch_stage(){
       register_map_table[log_dest] = dest_reg;
       
       is->dest_reg = dest_reg;
-      is->dest_reg = log_dest;
+      is->log_dest = log_dest;
       is->old_dest = old_dest;
       
       is->pc = pi->pc;
@@ -206,7 +206,7 @@ void exception_recovery_mode(){
 
     push_free_list(is->dest_reg);
     busy_bit_table[is->dest_reg] = false;
-    register_map_table[is->dest_reg] = is->old_dest;
+    register_map_table[is->log_dest] = is->old_dest;
 
     nb_recovered += 1;
   }

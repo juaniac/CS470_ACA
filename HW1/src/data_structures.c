@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 #include "../include/data_structures.h"
 
 uint64_t register_file[64];
@@ -74,6 +75,7 @@ void dispatch_active_list(instruction_state **is){
   active_list.list[active_list.tail].op_b_reg_tag = 0;
   active_list.list[active_list.tail].op_b_value = 0;
   active_list.list[active_list.tail].pc = 0;
+  strncpy( active_list.list[active_list.tail].opcode, "\0\0\0\0\0", 5);
 
   (*is) = &(active_list.list[active_list.tail]); 
   
