@@ -92,10 +92,10 @@ int empty_entries_active_list(){
   if(active_list.empty)
     return 32;
 
-  int cur = active_list.tail;
+  int i = active_list.tail;
   int nb_empty_entries = 0;
-  while(cur != active_list.head){
-    cur = (cur + 1) % 32;
+  while(i != active_list.head){
+    i = (i + 1) % 32;
     nb_empty_entries += 1;
   }
   return nb_empty_entries;

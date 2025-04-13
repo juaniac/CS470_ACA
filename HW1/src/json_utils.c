@@ -135,12 +135,11 @@ void append_state_to_logs() {
 
   cJSON *fl_array = cJSON_CreateArray();
   if (!free_list.empty) {
-    int cur = free_list.head;
-    while (true) {
-      cJSON_AddItemToArray(fl_array, cJSON_CreateNumber(free_list.list[cur]));
-      cur = (cur + 1) % 32;
-      if (cur == free_list.tail) break;
-    }
+    int i = free_list.head;
+    do {
+      cJSON_AddItemToArray(fl_array, cJSON_CreateNumber(free_list.list[i]));
+      i = (i + 1) % 32;
+    }while(i != free_list.tail);
   }
   cJSON_AddItemToObject(root, "FreeList", fl_array);
 
@@ -152,9 +151,9 @@ void append_state_to_logs() {
 
   cJSON *al_array = cJSON_CreateArray();
   if (!active_list.empty) {
-    int idx = active_list.head;
-    while (true) {
-      instruction_state *is = &active_list.list[idx];
+    int i = active_list.head;
+    do{
+      instruction_state *is = &active_list.list[i];
       cJSON *entry = cJSON_CreateObject();
       cJSON_AddBoolToObject(entry, "Done", is->done);
       cJSON_AddBoolToObject(entry, "Exception", is->exception);
@@ -163,16 +162,15 @@ void append_state_to_logs() {
       cJSON_AddNumberToObject(entry, "PC", is->pc);
       cJSON_AddItemToArray(al_array, entry);
           
-      idx = (idx + 1) % 32;
-      if (idx == active_list.tail) break;
-    }
+      i = (i + 1) % 32;
+    }while(i != active_list.tail);
   }
   cJSON_AddItemToObject(root, "ActiveList", al_array);
 
   cJSON *iq_array = cJSON_CreateArray();
-  pipeline_queue *cur = IQ_reg;
-  while (cur != NULL) {
-    instruction_state *is = cur->is;
+  pipeline_queue *pq = IQ_reg;
+  while (pq != NULL) {
+    instruction_state *is = pq->is;
     if (is) {
       cJSON *entry = cJSON_CreateObject();
       cJSON_AddNumberToObject(entry, "DestRegister", is->dest_reg);
@@ -190,7 +188,7 @@ void append_state_to_logs() {
       cJSON_AddNumberToObject(entry, "PC", is->pc);
       cJSON_AddItemToArray(iq_array, entry);
     }
-    cur = cur->next;
+    pq = pq->next;
   }
   cJSON_AddItemToObject(root, "IntegerQueue", iq_array);
 

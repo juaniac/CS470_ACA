@@ -1,3 +1,4 @@
+#!/bin/bash
 
 cd given_tests || { echo "given_tests folder not found!"; exit 1; }
 

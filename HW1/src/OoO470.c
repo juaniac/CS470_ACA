@@ -286,4 +286,6 @@ void main(int argc, char *argv[]) {
     append_state_to_logs();
   }
   convert_logs_to_json(output_json);
+  free(p->instructions);
+  free(p);
 }
