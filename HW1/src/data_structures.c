@@ -107,7 +107,7 @@ void exception_pop_active_list(instruction_state **is){
     return;
   }
     
-  active_list.tail = (active_list.tail - 1) % 32;
+  active_list.tail = (active_list.tail - 1 + 32) % 32;
   (*is) = &(active_list.list[active_list.tail]);
 
   if(active_list.tail == active_list.head)
