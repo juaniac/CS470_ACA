@@ -1,1 +1,0 @@
-Loop with a single invariant dependency.

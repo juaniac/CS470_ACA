@@ -1,1 +1,0 @@
-Loop with all intructions being part of the loop basic block.
