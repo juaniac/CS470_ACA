@@ -1,7 +1,7 @@
 [
   [
     " mov LC, 100",
-    " mov x1, 4096",
+    " mov x1, 0x1000",
     " nop",
     " nop",
     " nop"

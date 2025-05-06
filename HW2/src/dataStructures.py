@@ -9,7 +9,7 @@ class ProgramInstruction:
   dest : str
   opA: str
   opB: str
-  imm: int
+  imm: str
 
 @dataclass
 class Dependency:

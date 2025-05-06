@@ -90,7 +90,7 @@ def schedule_simple(cao: CodeAnalyserOutput) -> SimpleSchedulerOutput:
       ii += 1
     loop_cycle = bb1_times.start + ii - 1
     schedule_loop_instruction(cao.BB1[-1], loop_cycle, sso.schedule, sso.scheduled_times)
-    sso.schedule[loop_cycle].Branch.imm = bb1_times.start
+    sso.schedule[loop_cycle].Branch.imm = str(bb1_times.start)
     if cao.BB2:
       schedule_bb(cao.BB2, cao.dependencyList, bb1_times.start + ii, sso.schedule, sso.scheduled_times)
   
@@ -100,7 +100,7 @@ def allocate_fresh_registers(depList: List[DependencyListEntry], schedule: List[
   regMap = {}
   register_rename_id = 1
   for bundle in schedule:
-    for instr in [bundle.ALU0, bundle.ALU1, bundle.Mem, bundle.Mult]:
+    for instr in [bundle.ALU0, bundle.ALU1, bundle.Mult, bundle.Mem]:
       if instr and instr.dest and instr.dest != "LC" and instr.dest != "EC":
         instr.dest = f"x{register_rename_id}"
         regMap[instr.iaddr] = f"x{register_rename_id}"
@@ -109,7 +109,7 @@ def allocate_fresh_registers(depList: List[DependencyListEntry], schedule: List[
 
 def link_operands(regMap: Dict[int, str], depList: List[DependencyListEntry], schedule: List[Bundle]) -> None:
   for bundle in schedule:
-    for instr in [bundle.ALU0, bundle.ALU1, bundle.Mem, bundle.Mult]:
+    for instr in [bundle.ALU0, bundle.ALU1, bundle.Mult, bundle.Mem]:
       if instr:
         instrDepList = depList[instr.iaddr].localDeps + depList[instr.iaddr].interloopDeps + depList[instr.iaddr].loopInvariantDeps + depList[instr.iaddr].postLoopDeps
         opA_linked = False
@@ -163,7 +163,7 @@ def fix_interloop_dependencies(regMap: Dict[int, str], depList: List[DependencyL
                         dest=bb0_reg,
                         opA=bb1_reg,
                         opB='',
-                        imm=0
+                        imm=''
                       )
           mov_scheduled = False
           loop_cycle = find_loop_cycle(sso.schedule)
@@ -184,18 +184,19 @@ def fix_interloop_dependencies(regMap: Dict[int, str], depList: List[DependencyL
 def assign_unused_registers(schedule: List[Bundle], register_rename_next: int) -> None:
   register_rename_id = register_rename_next
   for bundle in schedule:
-    for instr in [bundle.ALU0, bundle.ALU1, bundle.Mem, bundle.Mult]:
+    for instr in [bundle.ALU0, bundle.ALU1, bundle.Mult, bundle.Mem]:
       if instr:
         if instr.opA == "UNUSED_REGISTER":
           instr.opA = f"x{register_rename_id}"
-          register_rename_next += 1
+          register_rename_id += 1
         if instr.opB == "UNUSED_REGISTER":
           instr.opB = f"x{register_rename_id}"
-          register_rename_next += 1
+          register_rename_id += 1
 
 
 def rename_simple(cao: CodeAnalyserOutput, sso: SimpleSchedulerOutput) -> SimpleSchedulerOutput:
   regMap = allocate_fresh_registers(cao.dependencyList, sso.schedule)
+  print(regMap)
   link_operands(regMap, cao.dependencyList, sso.schedule)
   fix_interloop_dependencies(regMap, cao.dependencyList, sso)
   assign_unused_registers(sso.schedule, max(regMap.keys()) + 1)

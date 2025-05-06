@@ -21,8 +21,8 @@ do
         fi
     done
 
-    # pipPassed=false
-    # pipColor=$RED
+    pipPassed=false
+    pipColor=$RED
 
     # for pip_ref in ${tnum}/pip_ref*.json
     # do
@@ -35,8 +35,8 @@ do
     #     fi
     # done
 
-    # cat ${tnum}/desc.txt
-    # printf "passed loop:  ${loopColor}${loopPassed}${RESET} passed pip: ${pipColor}${pipPassed}${RESET}\n\n"
+    cat ${tnum}/desc.txt
+    printf "passed loop:  ${loopColor}${loopPassed}${RESET} passed pip: ${pipColor}${pipPassed}${RESET}\n\n"
 
 
     i=$((i+1))

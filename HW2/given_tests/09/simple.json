@@ -3,14 +3,14 @@
     " addi x1, x5, 10",
     " nop",
     " nop",
-    " ld x2, 0(x5)",
+    " ld x2, 0(x6)",
     " nop"
   ],
   [
     " add x3, x1, x1",
     " nop",
     " nop",
-    " st x2, 0(x5)",
+    " st x2, 0(x7)",
     " nop"
   ],
   [

@@ -25,7 +25,7 @@ def get_basic_blocks(program: List[ProgramInstruction], cao: CodeAnalyserOutput)
   for i in program:
     if(get_optype(i.instrType) == OpType.BRANCH):
       loop_from_id = i.iaddr
-      loop_to_id = i.imm
+      loop_to_id = int(i.imm)
   
   for i in range(0, loop_to_id):
     cao.BB0.append(program[i])
@@ -92,20 +92,23 @@ def print_dependency_table(output: CodeAnalyserOutput) -> None:
   print("=" * 80)
 
 def analyse_code(program: List[ProgramInstruction]) -> CodeAnalyserOutput:
-  cao = CodeAnalyserOutput(
-          0, 0, 0, 0, [], [], [], 
-          [DependencyListEntry(
-            id=i.iaddr,
-            instrType=i.instrType,
-            dest=i.dest,
-            localDeps=[],
-            interloopDeps=[],
-            loopInvariantDeps=[],
-            postLoopDeps=[]
-          ) for i in program]
-        )
+  depList = []
+  for i in program:
+    depList.append(
+      DependencyListEntry(
+        id=i.iaddr,
+        instrType=i.instrType,
+        dest=i.dest,
+        localDeps=[],
+        interloopDeps=[],
+        loopInvariantDeps=[],
+        postLoopDeps=[]
+      ))
+  cao = CodeAnalyserOutput(0, 0, 0, 0, [], [], [], depList)
   count_instruction_type(program, cao)
   get_basic_blocks(program, cao)
   analyze_dependencies(cao)
+
+  print_dependency_table(cao)
 
   return cao

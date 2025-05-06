@@ -7,7 +7,7 @@
     " nop"
   ],
   [
-    " mov x2, 4096",
+    " mov x2, 0x1000",
     " nop",
     " nop",
     " nop",
