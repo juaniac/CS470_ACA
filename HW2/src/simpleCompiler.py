@@ -50,7 +50,6 @@ def schedule_bb(bb: List[ProgramInstruction], depList: List[DependencyListEntry]
     instrDepList = depList[instr.iaddr].localDeps + depList[instr.iaddr].interloopDeps + depList[instr.iaddr].loopInvariantDeps + depList[instr.iaddr].postLoopDeps
     schedule_instruction(instr, instrDepList, bb_start_cycle, schedule, scheduled_times)
   
-  print_schedule(schedule)
   return len(schedule) - 1
 
 def check_for_interloop_contraints(ii: int, depList: List[DependencyListEntry], scheduled_times: Dict[int, TimesIntervale]) -> bool:
@@ -85,12 +84,13 @@ def schedule_simple(cao: CodeAnalyserOutput) -> SimpleSchedulerOutput:
   bb0_finish_cycle = schedule_bb(cao.BB0, cao.dependencyList, 0, sso.schedule, sso.scheduled_times)
   if cao.BB1:
     schedule_bb(cao.BB1, cao.dependencyList, bb0_finish_cycle + 1, sso.schedule, sso.scheduled_times)
-    print_schedule(sso.schedule)
     bb1_times = get_start_end_cycles_for_bb(cao.BB1, sso.scheduled_times)
     ii = bb1_times.finish - bb1_times.start + 1
     while not check_for_interloop_contraints(ii, cao.dependencyList,sso.scheduled_times):
       ii += 1
-    schedule_loop_instruction(cao.BB1[-1], bb1_times.start + ii - 1, sso.schedule, sso.scheduled_times)
+    loop_cycle = bb1_times.start + ii - 1
+    schedule_loop_instruction(cao.BB1[-1], loop_cycle, sso.schedule, sso.scheduled_times)
+    sso.schedule[loop_cycle].Branch.imm = bb1_times.start
     if cao.BB2:
       schedule_bb(cao.BB2, cao.dependencyList, bb1_times.start + ii, sso.schedule, sso.scheduled_times)
   
@@ -149,34 +149,37 @@ def shift_schedule_by_one_after_loop(schedule: List[Bundle], loop_cycle: int):
   return
 
 def fix_interloop_dependencies(regMap: Dict[int, str], depList: List[DependencyListEntry], sso: SimpleSchedulerOutput) -> None:
-  #unique check
+  movs_seen = set()
   for entry in depList:
     for dep in entry.interloopDeps:
       bb0_reg = regMap[dep.producerId]
       bb1_reg = regMap[dep.producerIdInterloop]
       if bb0_reg and bb1_reg and bb0_reg != bb1_reg:
-        mov_instr = ProgramInstruction(
-                      iaddr=-1, 
-                      instrType="mov",
-                      dest=bb0_reg,
-                      opA=bb1_reg,
-                      opB='',
-                      imm=0
-                    )
-        mov_scheduled = False
-        loop_cycle = find_loop_cycle(sso.schedule)
-        while not mov_scheduled:
-          last_bundle = sso.schedule[loop_cycle]
-          if sso.scheduled_times[dep.producerIdInterloop].finish <= loop_cycle:
-            if not last_bundle.ALU0:
-              last_bundle.ALU0 = mov_instr
-              mov_scheduled = True
-            elif not last_bundle.ALU1:
-              last_bundle.ALU1 = mov_instr
-              mov_scheduled = True
-          if not mov_scheduled:
-            shift_schedule_by_one_after_loop(sso.schedule, loop_cycle)
-            loop_cycle += 1
+        reg_pair = (bb0_reg, bb1_reg)
+        if reg_pair not in movs_seen:
+          movs_seen.add(reg_pair) 
+          mov_instr = ProgramInstruction(
+                        iaddr=-1, 
+                        instrType="mov",
+                        dest=bb0_reg,
+                        opA=bb1_reg,
+                        opB='',
+                        imm=0
+                      )
+          mov_scheduled = False
+          loop_cycle = find_loop_cycle(sso.schedule)
+          while not mov_scheduled:
+            last_bundle = sso.schedule[loop_cycle]
+            if sso.scheduled_times[dep.producerIdInterloop].finish <= loop_cycle:
+              if not last_bundle.ALU0:
+                last_bundle.ALU0 = mov_instr
+                mov_scheduled = True
+              elif not last_bundle.ALU1:
+                last_bundle.ALU1 = mov_instr
+                mov_scheduled = True
+            if not mov_scheduled:
+              shift_schedule_by_one_after_loop(sso.schedule, loop_cycle)
+              loop_cycle += 1
   return           
 
 def assign_unused_registers(schedule: List[Bundle], register_rename_next: int) -> None:
