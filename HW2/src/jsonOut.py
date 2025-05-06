@@ -13,7 +13,7 @@ def instr_to_str(instr: ProgramInstruction) -> str:
   elif instr.instrType == "ld":
     return f" {instr.instrType} {instr.dest}, {instr.imm}({instr.opA})"
   elif instr.instrType == "st":
-    return f" {instr.instrType} {instr.opB}, {instr.imm}({instr.opA})"
+    return f" {instr.instrType} {instr.opA}, {instr.imm}({instr.opB})"
   elif instr.instrType == "loop":
     return f" {instr.instrType} {instr.imm}"
   elif instr.instrType == "mov":
