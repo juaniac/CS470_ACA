@@ -1,16 +1,23 @@
 [
-    [
-        " mov LC, 100",
-        "nop",
-        "nop",
-        "nop",
-        "nop"
-    ],
-    [
-        " add x1, x4, x5",
-        " sub x2, x6, x7",
-        "nop",
-        " ld x3, 0(x8)",
-        " loop 1"
-    ]
+  [
+    " mov LC, 100",
+    " nop",
+    " nop",
+    " nop",
+    " nop"
+  ],
+  [
+    " add x1, x4, x4",
+    " sub x2, x4, x4",
+    " nop",
+    " ld x3, 0(x4)",
+    " nop"
+  ],
+  [
+    " nop",
+    " nop",
+    " nop",
+    " nop",
+    " loop 1"
+  ]
 ]

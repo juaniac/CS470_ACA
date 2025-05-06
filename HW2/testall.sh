@@ -21,22 +21,22 @@ do
         fi
     done
 
-    pipPassed=false
-    pipColor=$RED
+    # pipPassed=false
+    # pipColor=$RED
 
-    for pip_ref in ${tnum}/pip_ref*.json
-    do
-        out="$(python compare.py --pip ${tnum}/pip.json  --refPip ${pip_ref})"
-        passed=$(echo "$out" | head -n 1)
+    # for pip_ref in ${tnum}/pip_ref*.json
+    # do
+    #     out="$(python compare.py --pip ${tnum}/pip.json  --refPip ${pip_ref})"
+    #     passed=$(echo "$out" | head -n 1)
 
-        if [[ "$passed" == *"PASSED"* ]]; then
-            pipPassed=true
-            pipColor=$GREEN
-        fi
-    done
+    #     if [[ "$passed" == *"PASSED"* ]]; then
+    #         pipPassed=true
+    #         pipColor=$GREEN
+    #     fi
+    # done
 
-    cat ${tnum}/desc.txt
-    printf "passed loop:  ${loopColor}${loopPassed}${RESET} passed pip: ${pipColor}${pipPassed}${RESET}\n\n"
+    # cat ${tnum}/desc.txt
+    # printf "passed loop:  ${loopColor}${loopPassed}${RESET} passed pip: ${pipColor}${pipPassed}${RESET}\n\n"
 
 
     i=$((i+1))

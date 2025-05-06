@@ -94,7 +94,6 @@ def schedule_simple(cao: CodeAnalyserOutput) -> SimpleSchedulerOutput:
     if cao.BB2:
       schedule_bb(cao.BB2, cao.dependencyList, bb1_times.start + ii, sso.schedule, sso.scheduled_times)
   
-  print_schedule(sso.schedule)
   return sso
 
 def allocate_fresh_registers(depList: List[DependencyListEntry], schedule: List[Bundle]) -> Dict[int, str]:
@@ -200,7 +199,5 @@ def rename_simple(cao: CodeAnalyserOutput, sso: SimpleSchedulerOutput) -> Simple
   link_operands(regMap, cao.dependencyList, sso.schedule)
   fix_interloop_dependencies(regMap, cao.dependencyList, sso)
   assign_unused_registers(sso.schedule, max(regMap.keys()) + 1)
-
-  print_schedule(sso.schedule)
 
   return sso

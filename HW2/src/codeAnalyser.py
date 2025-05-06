@@ -107,6 +107,5 @@ def analyse_code(program: List[ProgramInstruction]) -> CodeAnalyserOutput:
   count_instruction_type(program, cao)
   get_basic_blocks(program, cao)
   analyze_dependencies(cao)
-  print_dependency_table(cao)
 
   return cao

@@ -3,6 +3,7 @@ import sys
 from jsonParser import load_program_from_json
 from codeAnalyser import analyse_code
 from simpleCompiler import schedule_simple, rename_simple
+from jsonOut import schedule_to_json
 
 if __name__ == "__main__":
   if len(sys.argv) != 4:
@@ -17,4 +18,6 @@ if __name__ == "__main__":
   cao = analyse_code(program_instructions)
   sso = schedule_simple(cao)
   sso = rename_simple(cao, sso)
+  schedule_to_json(sso.schedule, simple_path)
+  schedule_to_json(sso.schedule, pip_path)
   
