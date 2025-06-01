@@ -12,6 +12,7 @@ void kernel1(int array[ARRAY_SIZE]){
 ```
 
 - The scheduled dataflow graph:
+![Alt Text](kernel1.png)
 
 - The interval reported by Vitis HLS: 1
 
@@ -39,6 +40,7 @@ void kernel2(int array[ARRAY_SIZE]){
 ```
 
 - The scheduled dataflow graph:
+![Alt Text](kernel2.png)
 
 - The interval reported by Vitis HLS: 2
 
@@ -61,6 +63,7 @@ void kernel3(float hist[ARRAY_SIZE], float weight[ARRAY_SIZE], int index[ARRAY_S
 ```
 
 - The scheduled dataflow graph:
+![Alt Text](kernel3.png)
 
 - The interval reported by Vitis HLS: 8
 
@@ -91,6 +94,8 @@ void kernel4(int array[ARRAY_SIZE], int index[ARRAY_SIZE], int offset){
 ```
 
 - The scheduled dataflow graph:
+![Alt Text](kernel4_1.png)
+![Alt Text](kernel4_2.png)
 
 - The interval reported by Vitis HLS: 1
 
@@ -124,13 +129,15 @@ float kernel5(float bound, float a[ARRAY_SIZE], float b[ARRAY_SIZE]){
 ```
 
 - The scheduled dataflow graph:
+![Alt Text](kernel5_1.png)
+![Alt Text](kernel5_2.png)
 
 - The interval reported by Vitis HLS: 1, 2
 
 - The total number of cycles: 1036 + 2 * `number_of_in_bounds_floats_in_the_array`
 
-- Explanation of the optimizations:
-In this optimization, the original while loop was divided into two distinct stages to allow for better pipelining and latency hiding. <br>
+- Explanation of the optimizations: <br>
+In this optimization, the original while loop was divided into two distinct stages to allow for better pipelining and latency masking. <br>
 In the first loop, we compute the sum of each corresponding element in arrays `a` and `b`, store the result in a temporary `sums` array, and simultaneously record whether the sum is below the given bound in a separate `in_bounds` array. Because each iteration is independent, this loop can be fully pipelined with an II of 1. <br> 
 The second loop then sequentially checks the `in_bounds` flags and returns the first sum that exceeds the bound. Due to the conditional early exit and loop-carried control dependencies, this second loop cannot be pipelined as aggressively and results in an II of 2. <br>
 While this transformation adds overhead in terms of memory usage—requiring two additional arrays of the same size as the input, it enables the high-throughput computation of sums in the first stage. A downside of this approach is that it prevents an early exit during the computation stage. The first loop must always process the entire array even if an out-of-bound value appears early.<br>
