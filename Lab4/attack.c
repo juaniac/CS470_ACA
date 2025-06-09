@@ -15,6 +15,7 @@ int victim(int input) {
 
 void attack(int input) {
   // TODO: Specify the threshold
+  int threshold = 250;
 
   // TODO: Build a table to store the hit time of each block
 

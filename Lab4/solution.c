@@ -15,7 +15,7 @@ int victim(int input) {
 
 void attack(int input) {
   // threshold depends on processors
-  const int THRESHOLD = 200;
+  const int THRESHOLD = 250;
 
   // measure the access count of each block
   int hit_count[256] = {0};
@@ -56,8 +56,8 @@ void attack(int input) {
       guessed_index = i;
     }
     // printing the distribution of the hit count
-    printf("%4d: %4d\t", i, hit_count[i]);
-    if (i % 8 == 7) printf("\n");
+    //printf("%4d: %4d\t", i, hit_count[i]);
+    //if (i % 8 == 7) printf("\n");
   }
   // compute the expected index
   int oracle_index = (input * 163) & 0xFF;
